@@ -1,0 +1,212 @@
+# Project Structure
+
+The project is divided into two major applications:
+
+* **Backend** – FastAPI-based API, monitoring engine, detection services, workers, and storage management.
+* **Frontend** – React + TypeScript web application used by operators, administrators, and analysts.
+
+```text
+DTV-Ad-monitor
+│
+├── backend
+│   ├── alembic
+│   │   └── env.py
+│   │       Database migration environment configuration.
+│   │
+│   ├── app
+│   │   │
+│   │   ├── api
+│   │   │   └── v1/routers
+│   │   │       ├── advertisements.py
+│   │   │       │   Advertisement management endpoints.
+│   │   │       │
+│   │   │       ├── advertisers.py
+│   │   │       │   Advertiser management and analytics APIs.
+│   │   │       │
+│   │   │       ├── auth.py
+│   │   │       │   Authentication and token endpoints.
+│   │   │       │
+│   │   │       ├── channels.py
+│   │   │       │   HDMI capture input and channel management APIs.
+│   │   │       │
+│   │   │       ├── detections.py
+│   │   │       │   Advertisement detection event APIs.
+│   │   │       │
+│   │   │       ├── reports.py
+│   │   │       │   Reporting and export endpoints.
+│   │   │       │
+│   │   │       └── users.py
+│   │   │           User administration APIs.
+│   │   │
+│   │   ├── core
+│   │   │   ├── config.py
+│   │   │   │   Application configuration and environment settings.
+│   │   │   │
+│   │   │   ├── exceptions.py
+│   │   │   │   Global exception handling.
+│   │   │   │
+│   │   │   ├── logging.py
+│   │   │   │   Logging configuration.
+│   │   │   │
+│   │   │   ├── metrics.py
+│   │   │   │   Monitoring metrics and telemetry helpers.
+│   │   │   │
+│   │   │   └── security.py
+│   │   │       JWT authentication and password security.
+│   │   │
+│   │   ├── infrastructure
+│   │   │   │
+│   │   │   ├── ai
+│   │   │   │   AI and matching services.
+│   │   │   │
+│   │   │   │   ├── audio_fingerprint.py
+│   │   │   │   │   Audio fingerprint generation and comparison.
+│   │   │   │   │
+│   │   │   │   ├── classifier.py
+│   │   │   │   │   Advertisement classification logic.
+│   │   │   │   │
+│   │   │   │   └── frame_hashing.py
+│   │   │   │       Video frame hashing and matching.
+│   │   │   │
+│   │   │   ├── db
+│   │   │   │   ├── base.py
+│   │   │   │   │   SQLAlchemy base model definitions.
+│   │   │   │   │
+│   │   │   │   └── session.py
+│   │   │   │       Database session management.
+│   │   │   │
+│   │   │   ├── messaging
+│   │   │   │   ├── kafka_consumer.py
+│   │   │   │   │   Kafka message consumer.
+│   │   │   │   │
+│   │   │   │   └── kafka_producer.py
+│   │   │   │       Kafka message producer.
+│   │   │   │
+│   │   │   ├── monitoring
+│   │   │   │   ├── audio_extractor.py
+│   │   │   │   │   Extracts audio from captured broadcasts.
+│   │   │   │   │
+│   │   │   │   ├── capture_device_service.py
+│   │   │   │   │   HDMI capture device discovery and probing.
+│   │   │   │   │
+│   │   │   │   ├── frame_extractor.py
+│   │   │   │   │   Extracts video frames for analysis.
+│   │   │   │   │
+│   │   │   │   ├── screenshot_service.py
+│   │   │   │   │   Creates evidence screenshots.
+│   │   │   │   │
+│   │   │   │   └── stream_ingestor.py
+│   │   │   │       Broadcast ingestion pipeline.
+│   │   │   │
+│   │   │   └── storage
+│   │   │       └── s3_client.py
+│   │   │           AWS S3 storage integration.
+│   │   │
+│   │   ├── models
+│   │   │   ├── __init__.py
+│   │   │   │   Model exports.
+│   │   │   │
+│   │   │   ├── role.py
+│   │   │   │   User role definitions.
+│   │   │   │
+│   │   │   └── user.py
+│   │   │       User database model.
+│   │   │
+│   │   ├── schemas
+│   │   │   └── auth.py
+│   │   │       Authentication request/response schemas.
+│   │   │
+│   │   ├── workers
+│   │   │   ├── detection_consumer.py
+│   │   │   │   Consumes detection jobs from queues.
+│   │   │   │
+│   │   │   ├── detection_worker.py
+│   │   │   │   Performs advertisement detection.
+│   │   │   │
+│   │   │   ├── ingestion_worker.py
+│   │   │   │   Processes incoming broadcast feeds.
+│   │   │   │
+│   │   │   ├── reconciliation_worker.py
+│   │   │   │   Compares expected vs actual broadcasts.
+│   │   │   │
+│   │   │   └── reporting_worker.py
+│   │   │       Generates scheduled reports.
+│   │   │
+│   │   ├── dependencies.py
+│   │   │   Dependency injection utilities.
+│   │   │
+│   │   └── main.py
+│   │       FastAPI application entry point.
+│   │
+│   ├── evidence
+│   │   ├── clips
+│   │   │   Captured advertisement video clips.
+│   │   │
+│   │   └── screenshots
+│   │       Evidence screenshots generated by detections.
+│   │
+│   ├── storage
+│   │   Local storage and generated assets.
+│   │
+│   ├── uploads
+│   │   └── advertisements
+│   │       Uploaded advertisement reference media.
+│   │
+│   ├── Dockerfile
+│   │   Backend container definition.
+│   │
+│   ├── alembic.ini
+│   │   Alembic migration configuration.
+│   │
+│   ├── requirements.txt
+│   │   Python dependency list.
+│   │
+│   └── run_ingestion_worker.bat
+│       Starts the ingestion worker on Windows.
+│
+├── frontend
+│   │
+│   ├── public
+│   │   Static web assets served by React.
+│   │
+│   ├── src
+│   │   │
+│   │   ├── api
+│   │   │   Frontend API clients for backend communication.
+│   │   │
+│   │   ├── components
+│   │   │   Shared UI components.
+│   │   │
+│   │   ├── features
+│   │   │   Feature-specific functionality.
+│   │   │
+│   │   ├── pages
+│   │   │   Application screens and views.
+│   │   │
+│   │   ├── types
+│   │   │   Shared TypeScript interfaces.
+│   │   │
+│   │   ├── App.tsx
+│   │   │   Main application router.
+│   │   │
+│   │   └── index.tsx
+│   │       React application bootstrap.
+│   │
+│   ├── Dockerfile
+│   │   Frontend container definition.
+│   │
+│   ├── nginx.conf
+│   │   Production web server configuration.
+│   │
+│   ├── package.json
+│   │   Frontend dependencies and scripts.
+│   │
+│   └── tsconfig.json
+│       TypeScript compiler configuration.
+│
+├── docker-compose.yml
+│   Multi-service deployment configuration.
+│
+└── README.md
+    Project documentation.
+```

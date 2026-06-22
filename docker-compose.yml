@@ -1,0 +1,127 @@
+services:
+  backend:
+    build:
+      context: ./backend
+    container_name: dtv_backend
+    env_file:
+      - ./backend/.env
+    ports:
+      - "8000:8000"
+    restart: unless-stopped
+    depends_on:
+      redis:
+        condition: service_healthy
+      kafka:
+        condition: service_started
+    volumes:
+      - ./backend/uploads:/app/uploads
+      - ./backend/evidence:/app/evidence
+      - ./backend/tmp:/app/tmp
+      - ./backend/storage:/app/storage
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  ingestion_worker:
+    
+    build:
+      context: ./backend
+    container_name: dtv_ingestion_worker
+    env_file:
+      - ./backend/.env
+    command: ["python", "-m", "app.workers.ingestion_worker"]
+    restart: unless-stopped
+    depends_on:
+      redis:
+        condition: service_healthy
+      kafka:
+        condition: service_started
+      backend:
+        condition: service_started
+    volumes:
+      - ./backend/uploads:/app/uploads
+      - ./backend/evidence:/app/evidence
+      - ./backend/tmp:/app/tmp
+      - ./backend/storage:/app/storage
+    # ✅ ADD THESE 3 LINES FOR HDMI CAPTURE CARD ACCESS:
+    devices:
+      - /dev/video0:/dev/video0
+    group_add:
+      - video
+    privileged: true  # Temporary for testing; remove in production after confirming it works
+
+  detection_consumer:
+    build:
+      context: ./backend
+    container_name: dtv_detection_consumer
+    env_file:
+      - ./backend/.env
+    command: ["python", "-m", "app.workers.detection_consumer"]
+    restart: unless-stopped
+    depends_on:
+      redis:
+        condition: service_healthy
+      kafka:
+        condition: service_started
+      backend:
+        condition: service_started
+    volumes:
+      - ./backend/uploads:/app/uploads
+      - ./backend/evidence:/app/evidence
+      - ./backend/tmp:/app/tmp
+      - ./backend/storage:/app/storage
+
+  frontend:
+    build:
+      context: ./frontend
+    container_name: dtv_frontend
+    ports:
+      - "3000:80"
+    restart: unless-stopped
+    depends_on:
+      backend:
+        condition: service_started
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  redis:
+    image: redis:7-alpine
+    container_name: dtv_redis
+    ports:
+      - "6379:6379"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  kafka:
+    image: redpandadata/redpanda:v24.1.9
+    container_name: dtv_kafka
+    command:
+      - redpanda
+      - start
+      - --overprovisioned
+      - --smp
+      - "1"
+      - --memory
+      - "512M"
+      - --reserve-memory
+      - "0M"
+      - --node-id
+      - "0"
+      - --check=false
+      - --kafka-addr
+      - INTERNAL://0.0.0.0:9092,OUTSIDE://0.0.0.0:19092
+      - --advertise-kafka-addr
+      - INTERNAL://kafka:9092,OUTSIDE://localhost:19092
+    ports:
+      - "9092:9092"
+      - "19092:19092"
+    restart: unless-stopped
