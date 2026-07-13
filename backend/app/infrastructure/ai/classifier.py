@@ -146,9 +146,7 @@ class ContentClassifier:
             reasoning=reasoning,
         )
 
-
 _default_classifier: ContentClassifier | None = None
-
 
 def get_classifier() -> ContentClassifier:
     global _default_classifier

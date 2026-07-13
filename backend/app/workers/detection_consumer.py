@@ -1,6 +1,5 @@
 import base64
 import logging
-
 import cv2
 import numpy as np
 
@@ -12,7 +11,6 @@ from app.workers.detection_worker import DetectionWorker
 
 logger = logging.getLogger("dtv.detection_consumer")
 settings = get_settings()
-
 
 class DetectionConsumerWorker:
     def __init__(
@@ -27,10 +25,8 @@ class DetectionConsumerWorker:
         raw = base64.b64decode(frame_jpeg_b64.encode("utf-8"))
         np_buf = np.frombuffer(raw, dtype=np.uint8)
         frame = cv2.imdecode(np_buf, cv2.IMREAD_COLOR)
-
         if frame is None:
             raise RuntimeError("Failed to decode Kafka frame")
-
         return frame
 
     def run_forever(self) -> None:
@@ -41,7 +37,6 @@ class DetectionConsumerWorker:
         )
 
         consumer = KafkaJSONConsumer(topic=self.topic, group_id=self.group_id)
-
         try:
             for payload in consumer.iter_messages():
                 try:
@@ -51,14 +46,11 @@ class DetectionConsumerWorker:
 
                     with SessionLocal() as db:
                         channel = db.query(Channel).filter(Channel.id == channel_id).first()
-
                         if not channel:
                             logger.warning("consumer_channel_not_found channel_id=%s", channel_id)
                             continue
-
                         detection_worker = DetectionWorker(db=db)
                         ads = detection_worker.load_active_ads()
-
                         decision = detection_worker.evaluate_sample(
                             frame=frame,
                             stream_url=None,
@@ -86,11 +78,8 @@ class DetectionConsumerWorker:
 
                 except Exception as exc:
                     logger.exception("consumer_message_processing_error error=%s", str(exc))
-
         finally:
             consumer.close()
-
-
 if __name__ == "__main__":
     worker = DetectionConsumerWorker()
     worker.run_forever()

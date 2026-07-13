@@ -53,17 +53,14 @@ ALLOWED_EXTENSIONS = {
 
 MAX_FILE_SIZE_BYTES = 500 * 1024 * 1024
 
-
 class AdvertisementContentType(str, Enum):
     commercial = "commercial"
     promo = "promo"
     sponsorship = "sponsorship"
     filler = "filler"
 
-
 class AdvertisementStatusUpdateRequest(BaseModel):
     is_active: bool
-
 
 class AdvertisementResponse(BaseModel):
     id: int
@@ -83,7 +80,6 @@ class AdvertisementResponse(BaseModel):
     class Config:
         from_attributes = True
 
-
 def _to_response(ad: Advertisement) -> AdvertisementResponse:
     return AdvertisementResponse(
         id=ad.id,
@@ -101,7 +97,6 @@ def _to_response(ad: Advertisement) -> AdvertisementResponse:
         is_active=ad.is_active,
     )
 
-
 def _validate_upload_file(video_file: UploadFile, extension: str) -> None:
     if extension not in ALLOWED_EXTENSIONS:
         raise HTTPException(
@@ -114,7 +109,6 @@ def _validate_upload_file(video_file: UploadFile, extension: str) -> None:
             status_code=400,
             detail=f"Unsupported video file type: {video_file.content_type}",
         )
-
 
 def _extract_audio_wav(video_path: str, output_wav_path: str) -> str:
     cmd = [
@@ -138,7 +132,6 @@ def _extract_audio_wav(video_path: str, output_wav_path: str) -> str:
         raise RuntimeError(f"Failed to extract audio from uploaded video: {result.stderr}")
 
     return output_wav_path
-
 
 def _read_video_duration_seconds(video_path: str) -> int:
     capture = cv2.VideoCapture(video_path)
@@ -165,14 +158,12 @@ def _read_video_duration_seconds(video_path: str) -> int:
         "default=noprint_wrappers=1:nokey=1",
         video_path,
     ]
-
     result = subprocess.run(cmd, capture_output=True, text=True)
 
     if result.returncode == 0 and result.stdout.strip():
         return max(1, int(math.ceil(float(result.stdout.strip()))))
 
     raise RuntimeError("Could not determine video duration")
-
 
 def _extract_reference_hashes(video_path: str) -> str:
     capture = cv2.VideoCapture(video_path)
@@ -224,7 +215,6 @@ def _extract_reference_hashes(video_path: str) -> str:
     finally:
         capture.release()
 
-
 def _extract_reference_audio_signature(video_path: str) -> str:
     with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as tmp:
         wav_path = tmp.name
@@ -237,7 +227,6 @@ def _extract_reference_audio_signature(video_path: str) -> str:
             Path(wav_path).unlink(missing_ok=True)
         except Exception:
             logger.exception("temp_audio_cleanup_failed path=%s", wav_path)
-
 
 @router.post(
     "/upload",
@@ -368,7 +357,6 @@ def list_advertisements(
         .order_by(Advertisement.created_at.desc())
         .all()
     )
-
     return [_to_response(ad) for ad in ads]
 
 

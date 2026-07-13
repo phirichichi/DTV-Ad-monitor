@@ -1,4 +1,4 @@
-#Kafka_Producer.py
+#backend/app/infrastructure/messaging/kafka_producer.py
 import json
 import logging
 from typing import Any
@@ -7,7 +7,6 @@ from app.core.config import get_settings
 
 logger = logging.getLogger("dtv.kafka_producer")
 settings = get_settings()
-
 
 class KafkaJSONProducer:
     def __init__(
@@ -20,7 +19,6 @@ class KafkaJSONProducer:
             "kafka_bootstrap_servers",
             "kafka:9092",
         )
-
         from kafka import KafkaProducer
 
         self.producer = KafkaProducer(

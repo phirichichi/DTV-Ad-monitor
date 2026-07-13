@@ -1,6 +1,5 @@
 from datetime import datetime, timezone
 from typing import Optional
-
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, EmailStr, Field, field_validator
 from sqlalchemy.orm import Session
@@ -12,13 +11,11 @@ from app.models import AuditLog, Role, User, UserLoginHistory
 
 router = APIRouter(prefix="/users", tags=["Users"])
 
-
 class UserCreateRequest(BaseModel):
     email: EmailStr
     password: str = Field(min_length=8, max_length=128)
     role_name: str
     is_active: bool = True
-
     @field_validator("role_name")
     @classmethod
     def validate_role_name(cls, value: str) -> str:
@@ -27,10 +24,8 @@ class UserCreateRequest(BaseModel):
             raise ValueError("role_name must be admin, operator, or client")
         return value
 
-
 class UserStatusUpdateRequest(BaseModel):
     is_active: bool
-
 
 class UserResponse(BaseModel):
     id: int
@@ -41,9 +36,8 @@ class UserResponse(BaseModel):
     current_session_active: Optional[bool] = None
     current_session_started_at: Optional[str] = None
 
-    class Config:
-        from_attributes = True
-
+class Config:
+    from_attributes = True
 
 def _user_to_response(user: User) -> UserResponse:
     return UserResponse(
@@ -60,7 +54,6 @@ def _user_to_response(user: User) -> UserResponse:
         ),
     )
 
-
 @router.get("/admin-only")
 def admin_only_test(current_user: User = Depends(require_roles("admin"))):
     return {
@@ -68,7 +61,6 @@ def admin_only_test(current_user: User = Depends(require_roles("admin"))):
         "user": current_user.email,
         "role": current_user.role.name if current_user.role else None,
     }
-
 
 @router.post("", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
 def create_user(
@@ -94,7 +86,6 @@ def create_user(
 
     db.add(user)
     db.flush()
-
     db.add(
         AuditLog(
             user_id=current_user.id,
@@ -107,9 +98,7 @@ def create_user(
 
     db.commit()
     db.refresh(user)
-
     return _user_to_response(user)
-
 
 @router.get("", response_model=list[UserResponse])
 def list_users(
@@ -119,7 +108,6 @@ def list_users(
     users = db.query(User).order_by(User.created_at.desc()).all()
     return [_user_to_response(user) for user in users]
 
-
 @router.patch("/{user_id}/status", response_model=UserResponse)
 def update_user_status(
     user_id: int,
@@ -128,10 +116,8 @@ def update_user_status(
     current_user: User = Depends(require_roles("admin")),
 ):
     user = db.query(User).filter(User.id == user_id).first()
-
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
-
     if user.id == current_user.id and payload.is_active is False:
         raise HTTPException(status_code=400, detail="You cannot deactivate your own account")
 
@@ -162,9 +148,7 @@ def update_user_status(
 
     db.commit()
     db.refresh(user)
-
     return _user_to_response(user)
-
 
 @router.delete("/{user_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_user(
@@ -192,9 +176,7 @@ def delete_user(
 
     db.delete(user)
     db.commit()
-
     return None
-
 
 @router.get("/{user_id}/login-history")
 def get_user_login_history(

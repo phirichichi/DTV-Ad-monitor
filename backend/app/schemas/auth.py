@@ -1,11 +1,9 @@
 #auth.py 
 from pydantic import BaseModel, EmailStr
 
-
 class LoginRequest(BaseModel):
     email: EmailStr
     password: str
-
 
 class TokenResponse(BaseModel):
     access_token: str
@@ -13,7 +11,6 @@ class TokenResponse(BaseModel):
     token_type: str = "bearer"
     role: str
     email: EmailStr
-
 
 class CurrentUserResponse(BaseModel):
     id: int

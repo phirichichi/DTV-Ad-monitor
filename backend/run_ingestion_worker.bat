@@ -1,3 +1,4 @@
+#backend/run_ingestion_worker.bat
 @echo off
 cd /d "%~dp0"
 

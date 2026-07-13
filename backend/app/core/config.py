@@ -1,9 +1,8 @@
-#config.py 
+#backend/app/core/config.py
 from functools import lru_cache
 from typing import List, Optional
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
-
 
 class Settings(BaseSettings):
     app_name: str = "DTV-Ad Monitor API"
@@ -128,7 +127,6 @@ class Settings(BaseSettings):
     @property
     def redis_url(self) -> str:
         return f"redis://{self.redis_host}:{self.redis_port}/{self.redis_db}"
-
 
 @lru_cache
 def get_settings() -> Settings:

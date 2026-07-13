@@ -1,9 +1,7 @@
 import logging
 import subprocess
 from pathlib import Path
-
 logger = logging.getLogger("dtv.audio_extractor")
-
 
 def extract_audio_chunk_from_stream(
     stream_url: str,
@@ -17,7 +15,6 @@ def extract_audio_chunk_from_stream(
 
     output_path = Path(output_wav_path)
     output_path.parent.mkdir(parents=True, exist_ok=True)
-
     cmd = [
         "ffmpeg",
         "-y",

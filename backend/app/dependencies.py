@@ -1,6 +1,5 @@
 #dependencies.py 
 from typing import Callable
-
 from fastapi import Depends
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from jose import JWTError
@@ -12,8 +11,6 @@ from app.infrastructure.db.session import get_db
 from app.models.user import User
 
 bearer_scheme = HTTPBearer(auto_error=False)
-
-
 def get_current_user(
     credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme),
     db: Session = Depends(get_db),
@@ -39,12 +36,10 @@ def get_current_user(
 
     return user
 
-
 def require_roles(*allowed_roles: str) -> Callable:
     def role_checker(current_user: User = Depends(get_current_user)) -> User:
         user_role = current_user.role.name if current_user.role else None
         if user_role not in allowed_roles:
             raise ForbiddenException()
         return current_user
-
     return role_checker

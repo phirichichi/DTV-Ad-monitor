@@ -11,14 +11,12 @@ import numpy as np
 
 logger = logging.getLogger("dtv.audio_fingerprint")
 
-
 DEFAULT_SAMPLE_RATE = 16000
 DEFAULT_WINDOW_SECONDS = 1.5
 DEFAULT_HOP_SECONDS = 0.5
 DEFAULT_N_FFT = 2048
 DEFAULT_HOP_LENGTH = 512
 DEFAULT_NUM_BANDS = 32
-
 
 @dataclass
 class AudioFingerprintPayload:
@@ -28,7 +26,6 @@ class AudioFingerprintPayload:
     windows: list[list[int]]
     band_peaks: list[list[int]]
     energy_profile: list[float]
-
 
 def _load_wav_mono(audio_file_path: str) -> tuple[np.ndarray, int]:
     path = Path(audio_file_path)
@@ -62,7 +59,6 @@ def _load_wav_mono(audio_file_path: str) -> tuple[np.ndarray, int]:
 
     return samples, sample_rate
 
-
 def _resample_if_needed(samples: np.ndarray, source_rate: int, target_rate: int) -> np.ndarray:
     if source_rate == target_rate or samples.size == 0:
         return samples
@@ -73,7 +69,6 @@ def _resample_if_needed(samples: np.ndarray, source_rate: int, target_rate: int)
     new_times = np.linspace(0.0, duration, num=new_length, endpoint=False)
 
     return np.interp(new_times, old_times, samples).astype(np.float32)
-
 
 def _frame_signal(samples: np.ndarray, frame_length: int, hop_length: int) -> np.ndarray:
     if samples.size < frame_length:
@@ -92,7 +87,6 @@ def _frame_signal(samples: np.ndarray, frame_length: int, hop_length: int) -> np
         frames = [np.pad(samples, (0, max(frame_length - len(samples), 0)))[:frame_length]]
 
     return np.stack(frames, axis=0)
-
 
 def _spectrogram(samples: np.ndarray, n_fft: int, hop_length: int) -> np.ndarray:
     frames = _frame_signal(samples, n_fft, hop_length)
@@ -117,7 +111,6 @@ def _compress_into_bands(spectrogram: np.ndarray, num_bands: int) -> np.ndarray:
         end = max(indices[band_idx + 1], start + 1)
         bands.append(np.mean(spectrogram[start:end, :], axis=0))
     return np.stack(bands, axis=0)
-
 
 def _window_band_signature(
     band_matrix: np.ndarray,
@@ -160,7 +153,6 @@ def _window_band_signature(
         energy_profile.append(float(np.mean(band_energy)))
 
     return signatures, peak_indices, energy_profile
-
 
 def generate_audio_fingerprint(
     audio_file_path: str,
@@ -227,7 +219,6 @@ def _safe_parse_fingerprint(value: str | dict[str, Any] | None) -> dict[str, Any
         logger.warning("invalid_audio_fingerprint_json")
         return None
 
-
 def _window_similarity(reference_window: list[int], candidate_window: list[int]) -> float:
     if not reference_window or not candidate_window:
         return 0.0
@@ -240,7 +231,6 @@ def _window_similarity(reference_window: list[int], candidate_window: list[int])
     mean_diff = float(np.mean(diffs)) if diffs else 15.0
     return max(0.0, 1.0 - (mean_diff / 15.0))
 
-
 def _peak_overlap_score(reference_peaks: list[int], candidate_peaks: list[int]) -> float:
     if not reference_peaks or not candidate_peaks:
         return 0.0
@@ -249,7 +239,6 @@ def _peak_overlap_score(reference_peaks: list[int], candidate_peaks: list[int]) 
     intersection = len(ref_set & cand_set)
     union = max(len(ref_set | cand_set), 1)
     return intersection / union
-
 
 def compare_audio_fingerprints(
     reference_fingerprint: str | dict[str, Any] | None,

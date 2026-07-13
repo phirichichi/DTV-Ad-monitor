@@ -7,11 +7,8 @@ from datetime import datetime, timezone
 from typing import Any, Generator
 
 import cv2
-
 from app.infrastructure.monitoring.capture_device_service import resolve_hdmi_source
-
 logger = logging.getLogger("dtv.stream_ingestor")
-
 
 @dataclass
 class StreamFrame:
@@ -25,21 +22,17 @@ class StreamFrame:
     source_wallclock_utc: str
     retry_count: int
 
-
 def open_capture(source: int | str) -> cv2.VideoCapture:
     if platform.system().lower() == "windows" and isinstance(source, int):
         capture = cv2.VideoCapture(source, cv2.CAP_DSHOW)
     else:
         capture = cv2.VideoCapture(source)
-
     return capture
-
 
 class HDMICaptureAdapter:
     def __init__(self, input_identifier: str | int):
         self.input_identifier = input_identifier
         self.capture: cv2.VideoCapture | None = None
-
     def open(self) -> cv2.VideoCapture:
         source = (
             self.input_identifier
@@ -48,7 +41,6 @@ class HDMICaptureAdapter:
         )
 
         capture = open_capture(source)
-
         if not capture.isOpened():
             raise RuntimeError(
                 f"Failed to open HDMI capture device '{self.input_identifier}'. "
@@ -59,7 +51,6 @@ class HDMICaptureAdapter:
         capture.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
         capture.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
         capture.set(cv2.CAP_PROP_FPS, 30)
-
         self.capture = capture
         return capture
 
@@ -71,14 +62,11 @@ class HDMICaptureAdapter:
                 logger.exception("hdmi_capture_release_failed")
             self.capture = None
 
-
 class StreamIngestor:
     """
     HDMI-only frame ingestor.
-
     On Windows, this uses DirectShow because many HDMI USB capture cards fail with MSMF.
     """
-
     def __init__(
         self,
         *,
@@ -97,7 +85,6 @@ class StreamIngestor:
     def frame_generator(self) -> Generator[StreamFrame, None, None]:
         retries = 0
         total_frames_seen = 0
-
         while True:
             adapter = HDMICaptureAdapter(self.input_identifier)
 
@@ -108,22 +95,17 @@ class StreamIngestor:
                     self.input_identifier,
                     retries,
                 )
-
                 capture = adapter.open()
-
                 fps = float(capture.get(cv2.CAP_PROP_FPS) or 0.0)
                 if fps <= 0:
                     fps = 25.0
-
                 frame_index = 0
                 connection_start_wallclock = time.time()
 
                 while True:
                     success, frame = capture.read()
-
                     if not success or frame is None:
                         raise RuntimeError("HDMI capture interrupted or returned empty frame")
-
                     now_utc = datetime.now(timezone.utc)
                     elapsed = max(time.time() - connection_start_wallclock, 0.0)
                     timestamp_seconds = max(frame_index / fps, elapsed)
@@ -139,7 +121,6 @@ class StreamIngestor:
                         source_wallclock_utc=now_utc.isoformat(),
                         retry_count=retries,
                     )
-
                     frame_index += 1
                     total_frames_seen += 1
 
@@ -152,9 +133,7 @@ class StreamIngestor:
                     total_frames_seen,
                     str(exc),
                 )
-
                 retries += 1
-
                 if self.max_retries >= 0 and retries > self.max_retries:
                     logger.error(
                         "hdmi_capture_max_retries_exceeded channel_id=%s input_identifier=%s",
@@ -162,8 +141,6 @@ class StreamIngestor:
                         self.input_identifier,
                     )
                     break
-
                 time.sleep(self.reconnect_delay_seconds)
-
             finally:
                 adapter.close()

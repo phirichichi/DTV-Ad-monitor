@@ -4,9 +4,7 @@ from pathlib import Path
 from typing import BinaryIO, Optional
 
 from app.core.config import get_settings
-
 logger = logging.getLogger("dtv.storage")
-
 
 class LocalStorageClient:
     def __init__(self, base_dir: str = "storage"):
@@ -55,7 +53,6 @@ class LocalStorageClient:
         except Exception:
             logger.exception("local_storage_delete_failed path=%s", path)
 
-
 class S3Client:
     def __init__(self):
         settings = get_settings()
@@ -66,10 +63,8 @@ class S3Client:
             raise RuntimeError("S3 credentials are missing")
         if not settings.s3_endpoint:
             raise RuntimeError("S3 endpoint is missing")
-
         import boto3
         from botocore.client import Config
-
         self.bucket = settings.s3_bucket_name
         self.client = boto3.client(
             "s3",
@@ -112,14 +107,10 @@ class S3Client:
             ExpiresIn=expires_in,
         )
 
-
 def get_storage_client(mode: Optional[str] = None, base_dir: Optional[str] = None):
     settings = get_settings()
-
     resolved_mode = mode or settings.storage_mode
     resolved_base_dir = base_dir or settings.local_storage_base_dir
-
     if resolved_mode == "s3":
         return S3Client()
-
     return LocalStorageClient(base_dir=resolved_base_dir)

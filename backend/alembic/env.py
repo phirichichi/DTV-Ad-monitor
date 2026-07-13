@@ -1,8 +1,6 @@
 from logging.config import fileConfig
-
 from alembic import context
 from sqlalchemy import engine_from_config, pool
-
 from app.core.config import get_settings
 from app.infrastructure.db.session import Base
 from app.models import *  # noqa: F401,F403
@@ -11,11 +9,8 @@ config = context.config
 
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
-
 settings = get_settings()
-
 target_metadata = Base.metadata
-
 
 def get_database_url() -> str:
     return (
@@ -23,10 +18,8 @@ def get_database_url() -> str:
         f"@{settings.db_host}:{settings.db_port}/{settings.db_name}"
     )
 
-
 def run_migrations_offline() -> None:
     url = get_database_url()
-
     context.configure(
         url=url,
         target_metadata=target_metadata,
@@ -38,7 +31,6 @@ def run_migrations_offline() -> None:
 
     with context.begin_transaction():
         context.run_migrations()
-
 
 def run_migrations_online() -> None:
     configuration = config.get_section(config.config_ini_section) or {}
@@ -57,15 +49,10 @@ def run_migrations_online() -> None:
             compare_type=True,
             compare_server_default=True,
         )
-
         with context.begin_transaction():
             context.run_migrations()
-
 
 if context.is_offline_mode():
     run_migrations_offline()
 else:
     run_migrations_online()
-
-
-    

@@ -7,7 +7,6 @@ from pathlib import Path
 from typing import Optional
 
 from sqlalchemy.orm import Session, joinedload
-
 from app.core.config import get_settings
 from app.infrastructure.ai.audio_fingerprint import (
     compare_audio_fingerprints,
@@ -21,7 +20,6 @@ from app.models import AdDetectionLog, Advertisement, AuditLog, Channel
 
 logger = logging.getLogger("dtv.detection_worker")
 settings = get_settings()
-
 
 @dataclass
 class DetectionDecision:
@@ -39,7 +37,6 @@ class DetectionDecision:
     classifier_score: float
     watermark_score: float
 
-
 @dataclass
 class CandidateMatch:
     advertisement: Advertisement
@@ -51,11 +48,9 @@ class CandidateMatch:
     fused_score: float
     predicted_status: str
 
-
 class DetectionWorker:
     """
     HDMI-safe detection worker.
-
     Current production timeline behavior:
     - Uses HDMI frames from Kafka.
     - Matches frame hashes against uploaded reference videos.
@@ -63,7 +58,6 @@ class DetectionWorker:
     - Saves screenshot evidence only.
     - Clip saving is intentionally disabled until rolling HDMI buffer exists.
     """
-
     _rolling_observations: dict[str, deque] = defaultdict(lambda: deque(maxlen=12))
 
     def __init__(
@@ -94,7 +88,6 @@ class DetectionWorker:
 
     def is_duplicate_detection(self, channel_id: int, advertisement_id: int) -> bool:
         cutoff = datetime.utcnow() - timedelta(seconds=self.duplicate_cooldown_seconds)
-
         recent = (
             self.db.query(AdDetectionLog)
             .filter(
@@ -108,11 +101,9 @@ class DetectionWorker:
         )
 
         return recent is not None
-
     def _watermark_score_placeholder(self, frame) -> float:
         _ = frame
         return 0.0
-
     def _classifier_alignment_score(
         self,
         ad: Advertisement,
@@ -120,10 +111,8 @@ class DetectionWorker:
     ) -> float:
         if not ad.content_type:
             return classification.confidence * 0.5
-
         if ad.content_type == classification.predicted_class:
             return 0.75 + (classification.confidence * 0.25)
-
         return max(0.05, classification.confidence * 0.25)
 
     def _derive_primary_source(
@@ -148,15 +137,11 @@ class DetectionWorker:
     ) -> int:
         observation_key = f"{stream_key}:{advertisement_id}"
         history = self._rolling_observations[observation_key]
-
         if not history:
             return max(int(round(self.audio_chunk_duration_seconds)), 1)
-
         timestamps = [float(item["timestamp_seconds"]) for item in history]
-
         if not timestamps:
             return max(int(round(self.audio_chunk_duration_seconds)), 1)
-
         estimated = (max(timestamps) - min(timestamps)) + self.audio_chunk_duration_seconds
         return max(int(round(estimated)), 1)
 
@@ -170,7 +155,6 @@ class DetectionWorker:
     ) -> float:
         observation_key = f"{stream_key}:{advertisement_id}"
         history = self._rolling_observations[observation_key]
-
         history.append(
             {
                 "score": fused_score,
@@ -180,16 +164,12 @@ class DetectionWorker:
         )
 
         recent_scores = [float(item["score"]) for item in history][-5:]
-
         if not recent_scores:
             return fused_score
-
         rolling_score = (fused_score * 0.5) + (
             sum(recent_scores) / len(recent_scores) * 0.5
         )
-
         return round(max(0.0, min(1.0, rolling_score)), 6)
-
     def _generate_candidate_audio_fingerprint(
         self,
         *,
@@ -202,9 +182,7 @@ class DetectionWorker:
 
         temp_audio_dir = Path(settings.temp_audio_dir)
         temp_audio_dir.mkdir(parents=True, exist_ok=True)
-
         tmp_audio_path = temp_audio_dir / f"sample_{int(timestamp_seconds * 1000)}.wav"
-
         try:
             extracted_audio_path = extract_audio_chunk_from_stream(
                 stream_url=stream_url,
@@ -217,7 +195,6 @@ class DetectionWorker:
         except Exception as exc:
             logger.warning("audio_fingerprint_generation_failed error=%s", str(exc))
             return None, False
-
         finally:
             try:
                 tmp_audio_path.unlink(missing_ok=True)
@@ -252,7 +229,6 @@ class DetectionWorker:
 
         classifier_alignment_score = self._classifier_alignment_score(ad, classification)
         watermark_score = self._watermark_score_placeholder(frame)
-
         if audio_available:
             fused_score = (
                 (frame_score * 0.40)
@@ -266,7 +242,6 @@ class DetectionWorker:
                 + (classifier_alignment_score * 0.20)
                 + (watermark_score * 0.02)
             )
-
         fused_score = max(0.0, min(1.0, fused_score))
 
         return CandidateMatch(
@@ -307,14 +282,12 @@ class DetectionWorker:
             )
 
         candidate_frame_hash = generate_frame_hash(frame)
-
         candidate_audio_fingerprint, audio_available = self._generate_candidate_audio_fingerprint(
             stream_url=stream_url,
             timestamp_seconds=timestamp_seconds,
         )
 
         best_candidate: CandidateMatch | None = None
-
         for ad in ads:
             candidate = self._build_candidate_match(
                 ad=ad,
@@ -345,7 +318,6 @@ class DetectionWorker:
             )
 
         stream_key = str(channel.id) if channel else "hdmi_unknown_channel"
-
         rolled_score = self._apply_rolling_window(
             stream_key=stream_key,
             advertisement_id=best_candidate.advertisement.id,
@@ -366,7 +338,6 @@ class DetectionWorker:
         )
 
         threshold = self.hybrid_match_threshold
-
         if not audio_available:
             threshold = self.frame_match_threshold
             best_source = "frame"
@@ -420,9 +391,7 @@ class DetectionWorker:
     def _publish_live_event(self, detection: AdDetectionLog, channel: Channel) -> None:
         try:
             import redis  # type: ignore
-
             client = redis.Redis.from_url(settings.redis_url, decode_responses=True)
-
             payload = {
                 "type": "detection_created",
                 "timestamp": datetime.utcnow().isoformat(),
@@ -444,10 +413,8 @@ class DetectionWorker:
             }
 
             client.publish("live:detections", json.dumps(payload))
-
         except Exception as exc:
             logger.debug("live_event_publish_skipped error=%s", str(exc))
-
     def persist_detection(
         self,
         channel: Channel,
@@ -462,7 +429,6 @@ class DetectionWorker:
 
         if not decision.matched or not decision.advertisement_id:
             return None
-
         if self.is_duplicate_detection(channel.id, decision.advertisement_id):
             logger.info(
                 "duplicate_detection_skipped channel_id=%s advertisement_id=%s",
@@ -476,18 +442,14 @@ class DetectionWorker:
             or decision.detected_duration_seconds
             or int(round(self.audio_chunk_duration_seconds))
         )
-
         detection = AdDetectionLog(
     channel_id=channel.id,
     advertisement_id=decision.advertisement_id,
     detected_at=datetime.utcnow(),
     duration_seconds=final_duration,
-
     confidence_score=decision.confidence_score,
-
     audio_confidence=decision.audio_score,
     frame_confidence=decision.frame_score,
-
     audio_sections_matched=json.dumps(
         {
             "score": round(decision.audio_score, 4),
@@ -510,7 +472,6 @@ class DetectionWorker:
 
         self.db.add(detection)
         self.db.flush()
-
         try:
             save_detection_screenshot(
                 detection_id=detection.id,
@@ -523,7 +484,6 @@ class DetectionWorker:
                 detection.id,
                 str(exc),
             )
-
         self.db.add(
             AuditLog(
                 user_id=None,
@@ -548,9 +508,7 @@ class DetectionWorker:
 
         self.db.commit()
         self.db.refresh(detection)
-
         self._publish_live_event(detection, channel)
-
         logger.info(
             "detection_persisted detection_id=%s channel_id=%s advertisement_id=%s confidence=%.4f status=%s duration=%s",
             detection.id,
@@ -560,5 +518,4 @@ class DetectionWorker:
             decision.status,
             final_duration,
         )
-
         return detection

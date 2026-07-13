@@ -1,7 +1,6 @@
 #main.py 
 import logging
 from pathlib import Path
-
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import text
@@ -23,14 +22,12 @@ from app.infrastructure.db.session import SessionLocal
 settings = get_settings()
 setup_logging()
 logger = logging.getLogger("dtv.main")
-
 app = FastAPI(
     title=settings.app_name,
     debug=settings.app_debug,
 )
 
 app.add_middleware(RequestLoggingMiddleware)
-
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origins_list,
@@ -49,7 +46,6 @@ app.include_router(detections_router, prefix=settings.api_v1_prefix)
 app.include_router(reports_router, prefix=settings.api_v1_prefix)
 app.include_router(metrics_router)
 
-
 @app.on_event("startup")
 def startup_event():
     Path(settings.local_upload_dir).mkdir(parents=True, exist_ok=True)
@@ -59,13 +55,11 @@ def startup_event():
     Path(settings.local_storage_base_dir).mkdir(parents=True, exist_ok=True)
     logger.info("startup_directories_ready")
 
-
 @app.middleware("http")
 async def metrics_middleware(request, call_next):
     http_requests_total.inc()
     response = await call_next(request)
     return response
-
 
 @app.get("/")
 def root():
@@ -90,7 +84,6 @@ def health():
             db_ok = True
     except Exception as exc:
         db_error = str(exc)
-
     redis_ok = check_redis_health()
 
     return {

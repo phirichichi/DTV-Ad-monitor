@@ -2,7 +2,6 @@ from datetime import date, datetime, timedelta
 from io import BytesIO, StringIO
 import csv
 
-
 from fastapi import APIRouter, Depends, Query
 from fastapi.responses import StreamingResponse
 from openpyxl import Workbook
@@ -10,7 +9,6 @@ from reportlab.lib.pagesizes import A4
 from reportlab.pdfgen import canvas
 from sqlalchemy import func, or_
 from sqlalchemy.orm import Session, joinedload
-
 
 from app.dependencies import require_roles
 from app.infrastructure.db.session import get_db
@@ -24,9 +22,7 @@ from app.models import (
     User,
 )
 
-
 router = APIRouter(prefix="/reports", tags=["Reports"])
-
 
 def _parse_range(
     start_date: str | None,
@@ -38,25 +34,19 @@ def _parse_range(
         start_dt = end_dt - timedelta(hours=24)
         return start_dt, end_dt
 
-
     start_dt = datetime.fromisoformat(f"{start_date}T00:00:00") if start_date else None
     end_dt = datetime.fromisoformat(f"{end_date}T23:59:59") if end_date else None
-
-
     return start_dt, end_dt
-
 
 def _evidence_url(evidence: DetectionEvidence | None) -> str | None:
     if not evidence:
         return None
     return f"/api/v1/detections/evidence/{evidence.id}/file"
 
-
 def _split_date_time(value: datetime | None) -> tuple[str | None, str | None]:
     if not value:
         return None, None
     return value.date().isoformat(), value.time().replace(microsecond=0).isoformat()
-
 
 def _build_report_rows(
     db: Session,
@@ -82,7 +72,6 @@ def _build_report_rows(
         .order_by(AdDetectionLog.detected_at.desc())
     )
 
-
     if start_dt:
         query = query.filter(AdDetectionLog.detected_at >= start_dt)
     if end_dt:
@@ -98,7 +87,6 @@ def _build_report_rows(
     if review_status:
         query = query.filter(AdDetectionLog.review_status == review_status)
 
-
     if search:
         pattern = f"%{search.strip()}%"
         query = query.filter(
@@ -111,61 +99,40 @@ def _build_report_rows(
             )
         )
 
-
     output: list[dict] = []
-
 
     for row in query.all():
         screenshot = None
-
 
         for evidence in row.evidence_items:
             if evidence.file_type == "screenshot":
                 screenshot = evidence
                 break
 
-
         # ✅ UPDATED: Use started_at and ended_at
         date_played, start_time = _split_date_time(row.started_at)
-
-
         _, end_time = _split_date_time(row.ended_at)
-
-
         # ✅ UPDATED: New output structure
         output.append(
             {
                 "detection_id": row.id,
-
-
                 "date": date_played,
-
-
                 "advertiser": (
                     row.advertisement.advertiser.name
                     if row.advertisement and row.advertisement.advertiser
                     else "Unknown"
                 ),
-
-
                 "ad_name": (
                     row.advertisement.title
                     if row.advertisement
                     else "Unknown"
                 ),
-
-
                 "start_time": start_time,
-
-
                 "end_time": end_time,
-
-
                 "duration": row.duration_seconds,
             }
         )
     return output
-
 
 @router.get("/")
 def list_reports(
@@ -183,7 +150,6 @@ def list_reports(
 ):
     start_dt, end_dt = _parse_range(start_date, end_date, last_24_hours)
 
-
     return _build_report_rows(
         db=db,
         start_dt=start_dt,
@@ -195,7 +161,6 @@ def list_reports(
         review_status=review_status,
         search=search,
     )
-
 
 def _export_rows(
     db: Session,
@@ -211,7 +176,6 @@ def _export_rows(
 ) -> list[dict]:
     start_dt, end_dt = _parse_range(start_date, end_date, last_24_hours)
 
-
     return _build_report_rows(
         db=db,
         start_dt=start_dt,
@@ -224,7 +188,6 @@ def _export_rows(
         search=search,
     )
 
-
 # ✅ UPDATED: Simplified headers
 EXPORT_HEADERS = [
     "Date",
@@ -234,7 +197,6 @@ EXPORT_HEADERS = [
     "End Time",
     "Duration",
 ]
-
 
 def _row_to_export_values(row: dict) -> list:
     # ✅ UPDATED: Only 6 values
@@ -246,7 +208,6 @@ def _row_to_export_values(row: dict) -> list:
         row["end_time"],
         row["duration"],
     ]
-
 
 @router.get("/export/csv")
 def export_csv(
@@ -275,23 +236,18 @@ def export_csv(
         search,
     )
 
-
     buffer = StringIO()
     writer = csv.writer(buffer)
     writer.writerow(EXPORT_HEADERS)
-
-
     for row in rows:
         writer.writerow(_row_to_export_values(row))
     buffer.seek(0)
-
 
     return StreamingResponse(
         iter([buffer.getvalue()]),
         media_type="text/csv",
         headers={"Content-Disposition": "attachment; filename=dtv_detection_report.csv"},
     )
-
 
 @router.get("/export/excel")
 def export_excel(
@@ -320,28 +276,21 @@ def export_excel(
         search,
     )
 
-
     workbook = Workbook()
     sheet = workbook.active
     sheet.title = "Detection Report"
     sheet.append(EXPORT_HEADERS)
-
-
     for row in rows:
         sheet.append(_row_to_export_values(row))
-
-
     buffer = BytesIO()
     workbook.save(buffer)
     buffer.seek(0)
-
 
     return StreamingResponse(
         buffer,
         media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         headers={"Content-Disposition": "attachment; filename=dtv_detection_report.xlsx"},
     )
-
 
 @router.get("/export/pdf")
 def export_pdf(
@@ -370,21 +319,14 @@ def export_pdf(
         search,
     )
 
-
     buffer = BytesIO()
     pdf = canvas.Canvas(buffer, pagesize=A4)
     _, height = A4
     y = height - 40
-
-
     pdf.setFont("Helvetica-Bold", 12)
     pdf.drawString(40, y, "DTV-Ad Monitor Detection Report")
     y -= 25
-
-
     pdf.setFont("Helvetica", 9)
-
-
     for row in rows:
         # ✅ UPDATED: New PDF format
         pdf.drawString(
@@ -393,65 +335,48 @@ def export_pdf(
             f"Date: {row['date']}"
         )
         y -= 15
-
-
         pdf.drawString(
             40,
             y,
             f"Ad: {row['ad_name']}"
         )
         y -= 15
-
-
         pdf.drawString(
             40,
             y,
             f"Advertiser: {row['advertiser']}"
         )
         y -= 15
-
-
         pdf.drawString(
             40,
             y,
             f"Start: {row['start_time']}"
         )
         y -= 15
-
-
         pdf.drawString(
             40,
             y,
             f"End: {row['end_time']}"
         )
         y -= 15
-
-
         pdf.drawString(
             40,
             y,
             f"Duration: {row['duration']}s"
         )
         y -= 20
-
-
         if y < 50:
             pdf.showPage()
             pdf.setFont("Helvetica", 9)
             y = height - 40
-
-
     pdf.save()
     buffer.seek(0)
-
 
     return StreamingResponse(
         buffer,
         media_type="application/pdf",
         headers={"Content-Disposition": "attachment; filename=dtv_detection_report.pdf"},
     )
-
-
 
 @router.get("/dashboard-summary")
 def dashboard_summary(
@@ -460,7 +385,6 @@ def dashboard_summary(
 ):
     today = date.today()
     interrupted_statuses = ["interrupted", "disconnected", "error", "probe_failed"]
-
 
     return {
         "total_users": db.query(func.count(User.id)).scalar() or 0,
@@ -500,15 +424,12 @@ def dashboard_summary(
         or 0,
     }
 
-
-
 @router.get("/audit-logs")
 def list_audit_logs(
     db: Session = Depends(get_db),
     current_user: User = Depends(require_roles("admin", "operator")),
 ):
     logs = db.query(AuditLog).order_by(AuditLog.created_at.desc()).limit(100).all()
-
 
     return [
         {
@@ -523,8 +444,6 @@ def list_audit_logs(
         for log in logs
     ]
 
-
-
 @router.get("/kpi")
 def kpi(
     db: Session = Depends(get_db),
@@ -532,14 +451,12 @@ def kpi(
 ):
     total = db.query(func.count(AdDetectionLog.id)).scalar() or 0
 
-
     matched = (
         db.query(func.count(AdDetectionLog.id))
         .filter(AdDetectionLog.status == "matched")
         .scalar()
         or 0
     )
-
 
     uncertain = (
         db.query(func.count(AdDetectionLog.id))
@@ -555,9 +472,7 @@ def kpi(
         or 0
     )
 
-
     total_duration = db.query(func.sum(AdDetectionLog.duration_seconds)).scalar() or 0
-
 
     return {
         "total": total,

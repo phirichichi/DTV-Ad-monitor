@@ -1,9 +1,9 @@
+#backend/app/workers/ingestion_worker.py
 import base64
 import logging
 import threading
 import time
 from datetime import datetime, timezone
-
 import cv2
 from sqlalchemy.orm import Session
 
@@ -17,11 +17,9 @@ from app.models import AuditLog, Channel
 logger = logging.getLogger("dtv.ingestion_worker")
 settings = get_settings()
 
-
 class IngestionWorker:
     """
     HDMI-only ingestion producer.
-
     Responsibilities:
     - fetch monitoring-enabled HDMI channels
     - open HDMI capture card independently per channel
@@ -47,7 +45,6 @@ class IngestionWorker:
         )
         self.idle_sleep_seconds = idle_sleep_seconds or settings.worker_idle_sleep_seconds
         self.kafka_topic = kafka_topic or getattr(settings, "kafka_frames_topic", "dtv.sampled.frames")
-
         self.running_threads: dict[int, threading.Thread] = {}
         self.stop_flags: dict[int, bool] = {}
 
@@ -90,19 +87,16 @@ class IngestionWorker:
                     details=audit_details,
                 )
             )
-
         db.commit()
 
     def _encode_frame(self, frame) -> str:
         success, encoded = cv2.imencode(".jpg", frame)
         if not success:
             raise RuntimeError("Failed to encode HDMI frame for Kafka event")
-
         return base64.b64encode(encoded.tobytes()).decode("utf-8")
 
     def process_channel(self, channel_id: int) -> None:
         producer = KafkaJSONProducer(client_id=f"dtv-hdmi-ingestion-producer-{channel_id}")
-
         try:
             while not self.stop_flags.get(channel_id, False):
                 with SessionLocal() as db:
@@ -187,7 +181,6 @@ class IngestionWorker:
                                 )
 
                                 published_count += 1
-
                                 now = time.time()
                                 if now - last_heartbeat_touch >= 10:
                                     self._update_channel_health(
@@ -232,13 +225,11 @@ class IngestionWorker:
 
         finally:
             producer.close()
-
     def _start_channel_thread(self, channel_id: int) -> None:
         if channel_id in self.running_threads and self.running_threads[channel_id].is_alive():
             return
 
         self.stop_flags[channel_id] = False
-
         thread = threading.Thread(
             target=self.process_channel,
             args=(channel_id,),
@@ -248,7 +239,6 @@ class IngestionWorker:
 
         self.running_threads[channel_id] = thread
         thread.start()
-
         logger.info("hdmi_channel_thread_started channel_id=%s", channel_id)
 
     def _stop_channel_thread(self, channel_id: int) -> None:
@@ -279,9 +269,7 @@ class IngestionWorker:
 
             except Exception as exc:
                 logger.exception("hdmi_ingestion_worker_supervisor_error error=%s", str(exc))
-
             time.sleep(self.idle_sleep_seconds)
-
 
 if __name__ == "__main__":
     worker = IngestionWorker()

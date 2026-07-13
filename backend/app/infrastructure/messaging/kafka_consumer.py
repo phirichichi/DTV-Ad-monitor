@@ -1,3 +1,4 @@
+#backend/app/infrastructure/messaging/kafka_producer.py
 import json
 import logging
 from typing import Generator
@@ -6,7 +7,6 @@ from app.core.config import get_settings
 
 logger = logging.getLogger("dtv.kafka_consumer")
 settings = get_settings()
-
 
 class KafkaJSONConsumer:
     def __init__(

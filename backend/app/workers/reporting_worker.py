@@ -1,7 +1,6 @@
 import logging
 import time
 from datetime import datetime, timedelta
-
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
@@ -30,7 +29,6 @@ class ReportingWorker:
 
     def run_hourly(self, db: Session) -> None:
         last_hour = datetime.utcnow() - timedelta(hours=1)
-
         total_detections = (
             db.query(func.count(AdDetectionLog.id))
             .filter(AdDetectionLog.detected_at >= last_hour)
@@ -65,7 +63,6 @@ class ReportingWorker:
 
     def run_daily(self, db: Session) -> None:
         last_24_hours = datetime.utcnow() - timedelta(days=1)
-
         ad_results = (
             db.query(
                 Advertisement.id,
@@ -150,7 +147,6 @@ class ReportingWorker:
                 float(avg_audio_confidence or 0),
                 float(avg_frame_confidence or 0),
             )
-
         for advertiser_id, name, count in advertiser_results:
             logger.info(
                 "daily_advertiser_kpi advertiser_id=%s name=%s detections=%s",
@@ -158,7 +154,6 @@ class ReportingWorker:
                 name,
                 count,
             )
-
         for (
             channel_id,
             name,
@@ -184,9 +179,7 @@ class ReportingWorker:
             .scalar()
             or 0
         )
-
         today = datetime.utcnow().date()
-
         existing_report = (
             db.query(DailyReport)
             .filter(DailyReport.report_date == today)
@@ -209,12 +202,10 @@ class ReportingWorker:
                     notes=report_notes,
                 )
             )
-
         db.commit()
 
     def run_forever(self) -> None:
         logger.info("reporting_worker_started")
-
         while True:
             try:
                 with SessionLocal() as db:
@@ -222,9 +213,7 @@ class ReportingWorker:
                     self.run_daily(db)
             except Exception as exc:
                 logger.exception("reporting_worker_error error=%s", str(exc))
-
             time.sleep(self.loop_sleep_seconds)
-
 if __name__ == "__main__":
     worker = ReportingWorker()
     worker.run_forever()

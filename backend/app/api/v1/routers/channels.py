@@ -16,7 +16,6 @@ from app.models import AuditLog, Channel, User
 
 router = APIRouter(prefix="/channels", tags=["Channels"])
 
-
 class ChannelCreateRequest(BaseModel):
     name: str = Field(min_length=1, max_length=255)
     input_identifier: str = Field(min_length=1, max_length=255)
@@ -32,7 +31,6 @@ class ChannelCreateRequest(BaseModel):
             return None
         value = value.strip()
         return value or None
-
 
 class ChannelUpdateRequest(BaseModel):
     name: str | None = None
@@ -60,33 +58,24 @@ class ChannelUpdateRequest(BaseModel):
         value = value.strip()
         return value or None
 
-
 class ChannelHeartbeatRequest(BaseModel):
     capture_status: str = "healthy"
-
 
 class ChannelResponse(BaseModel):
     id: int
     name: str
-
     input_identifier: str | None = None
-
     capture_card_name: str | None = None
-
     device_name: str | None = None
-
     is_active: bool
     monitoring_enabled: bool
     main_channel_flag: bool
-
     capture_status: str | None = None
     last_heartbeat_at: str | None = None
     last_interruption_at: str | None = None
     last_interruption_reason: str | None = None
-
     class Config:
         from_attributes = True
-
 
 class ChannelProbeResponse(BaseModel):
     channel_id: int
@@ -98,7 +87,6 @@ class ChannelProbeResponse(BaseModel):
     fps: float | None = None
     message: str
 
-
 class CaptureDeviceProbeResponse(BaseModel):
     input_identifier: str
     device_name: str | None = None
@@ -109,13 +97,11 @@ class CaptureDeviceProbeResponse(BaseModel):
     fps: float | None = None
     message: str
 
-
 def _channel_to_response(channel: Channel) -> ChannelResponse:
     device_name = None
 
     try:
         devices = scan_capture_devices(max_index=10)
-
         matching_device = next(
             (
                 device
@@ -150,7 +136,6 @@ def _channel_to_response(channel: Channel) -> ChannelResponse:
         else None,
         last_interruption_reason=channel.last_interruption_reason,
     )
-
 
 @router.post("/", response_model=ChannelResponse, status_code=status.HTTP_201_CREATED)
 def create_channel(
@@ -207,7 +192,6 @@ def list_channels(
     channels = db.query(Channel).order_by(Channel.created_at.desc()).all()
     return [_channel_to_response(channel) for channel in channels]
 
-
 @router.get("/monitoring-enabled", response_model=list[ChannelResponse])
 def list_monitoring_enabled_channels(
     db: Session = Depends(get_db),
@@ -220,7 +204,6 @@ def list_monitoring_enabled_channels(
         .all()
     )
     return [_channel_to_response(channel) for channel in channels]
-
 
 @router.get("/capture-devices", response_model=list[CaptureDeviceProbeResponse])
 def capture_devices(
@@ -241,7 +224,6 @@ def capture_devices(
         )
         for item in results
     ]
-
 
 @router.patch("/{channel_id}", response_model=ChannelResponse)
 def update_channel(
@@ -292,7 +274,6 @@ def update_channel(
     db.refresh(channel)
     return _channel_to_response(channel)
 
-
 @router.post("/{channel_id}/heartbeat", response_model=ChannelResponse)
 def heartbeat_channel(
     channel_id: int,
@@ -320,7 +301,6 @@ def heartbeat_channel(
     db.commit()
     db.refresh(channel)
     return _channel_to_response(channel)
-
 
 @router.post("/{channel_id}/probe", response_model=ChannelProbeResponse)
 def probe_channel(

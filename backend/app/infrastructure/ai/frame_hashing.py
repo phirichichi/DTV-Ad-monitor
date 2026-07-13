@@ -9,16 +9,12 @@ import numpy as np
 
 logger = logging.getLogger("dtv.frame_hashing")
 
-
 HASH_SIZE = 8
-
-
 @dataclass
 class FrameHashPayload:
     version: str
     hashes: list[str]
     descriptors: list[str]
-
 
 def _ensure_grayscale(frame) -> np.ndarray:
     if frame is None:
@@ -26,7 +22,6 @@ def _ensure_grayscale(frame) -> np.ndarray:
     if len(frame.shape) == 2:
         return frame
     return cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-
 
 def _phash(image: np.ndarray, hash_size: int = HASH_SIZE, highfreq_factor: int = 4) -> str:
     grayscale = _ensure_grayscale(image)
@@ -42,7 +37,6 @@ def _phash(image: np.ndarray, hash_size: int = HASH_SIZE, highfreq_factor: int =
     bits = dct_lowfreq > median
     return "".join("1" if bit else "0" for bit in bits.flatten())
 
-
 def _crop_center(frame, ratio: float = 0.6):
     height, width = frame.shape[:2]
     crop_h = max(int(height * ratio), 1)
@@ -50,7 +44,6 @@ def _crop_center(frame, ratio: float = 0.6):
     start_y = max((height - crop_h) // 2, 0)
     start_x = max((width - crop_w) // 2, 0)
     return frame[start_y:start_y + crop_h, start_x:start_x + crop_w]
-
 
 def _crop_top_without_bug(frame, keep_ratio: float = 0.85):
     """
@@ -61,7 +54,6 @@ def _crop_top_without_bug(frame, keep_ratio: float = 0.85):
     cut_h = max(int(height * keep_ratio), 1)
     cut_w = max(int(width * keep_ratio), 1)
     return frame[:cut_h, :cut_w]
-
 
 def generate_frame_hash(frame) -> str:
     """
@@ -85,7 +77,6 @@ def generate_frame_hash(frame) -> str:
     )
     return json.dumps(asdict(payload), separators=(",", ":"))
 
-
 def _safe_parse_hash(value: str | dict[str, Any] | None) -> dict[str, Any] | None:
     if value is None:
         return None
@@ -97,7 +88,6 @@ def _safe_parse_hash(value: str | dict[str, Any] | None) -> dict[str, Any] | Non
         logger.warning("invalid_frame_hash_json")
         return None
 
-
 def _hamming_similarity(hash_a: str, hash_b: str) -> float:
     if not hash_a or not hash_b:
         return 0.0
@@ -108,7 +98,6 @@ def _hamming_similarity(hash_a: str, hash_b: str) -> float:
 
     distance = sum(1 for a, b in zip(padded_a, padded_b) if a != b)
     return max(0.0, 1.0 - (distance / max_len))
-
 
 def compare_frame_hashes(
     reference_hash: str | dict[str, Any] | None,

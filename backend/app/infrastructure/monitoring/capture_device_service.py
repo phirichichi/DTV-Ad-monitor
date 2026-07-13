@@ -1,4 +1,4 @@
-#capure_device_service.py
+#backend/app/infrastructure/monitoring/capture_device_service.py
 import logging
 import platform
 from dataclasses import dataclass
@@ -6,18 +6,13 @@ from pathlib import Path
 from tempfile import NamedTemporaryFile
 
 import cv2
-
 logger = logging.getLogger("dtv.capture_device_service")
-
 # Optional dependency for Windows device names
 try:
     from pygrabber.dshow_graph import FilterGraph
-
     PYGRABBER_AVAILABLE = True
 except ImportError:
     PYGRABBER_AVAILABLE = False
-
-
 @dataclass
 class CaptureProbeResult:
     input_identifier: str
@@ -29,11 +24,9 @@ class CaptureProbeResult:
     fps: float | None
     message: str
 
-
 def get_windows_video_devices() -> list[str]:
     """
     Returns friendly DirectShow device names.
-
     Example:
     [
         "USB Video",
@@ -60,54 +53,41 @@ def get_windows_video_devices() -> list[str]:
         )
         return []
 
-
 def resolve_hdmi_source(input_identifier: str) -> int | str:
     raw = input_identifier.strip()
 
     if raw.isdigit():
         return int(raw)
-
     return raw
-
 
 def open_capture(source: int | str) -> cv2.VideoCapture:
     """
     Opens HDMI capture source.
-
     Windows:
         cv2.VideoCapture(index, cv2.CAP_DSHOW)
-
     Linux/Mac:
         cv2.VideoCapture(index)
     """
-
     if platform.system().lower() == "windows":
         if isinstance(source, int):
             return cv2.VideoCapture(source, cv2.CAP_DSHOW)
 
     return cv2.VideoCapture(source)
 
-
 def get_device_name_for_index(index: int) -> str | None:
     """
     Maps OpenCV index -> DirectShow friendly name.
-
     Example:
         0 -> USB Video
         1 -> HP Webcam
     """
-
     devices = get_windows_video_devices()
-
     if index < len(devices):
         return devices[index]
-
     return None
-
 
 def probe_capture_device(input_identifier: str) -> CaptureProbeResult:
     source = resolve_hdmi_source(input_identifier)
-
     device_name = None
 
     if isinstance(source, int):
@@ -133,7 +113,6 @@ def probe_capture_device(input_identifier: str) -> CaptureProbeResult:
 
     try:
         success, frame = capture.read()
-
         width = int(capture.get(cv2.CAP_PROP_FRAME_WIDTH) or 0) or None
         height = int(capture.get(cv2.CAP_PROP_FRAME_HEIGHT) or 0) or None
         fps = float(capture.get(cv2.CAP_PROP_FPS) or 0.0) or None
@@ -164,22 +143,17 @@ def probe_capture_device(input_identifier: str) -> CaptureProbeResult:
     finally:
         capture.release()
 
-
 def scan_capture_devices(max_index: int = 10) -> list[CaptureProbeResult]:
     """
     Enumerate all available capture devices.
-
     Windows:
         Uses DirectShow names when available.
-
     Linux/Mac:
         Falls back to OpenCV index scanning.
     """
 
     results: list[CaptureProbeResult] = []
-
     device_names = get_windows_video_devices()
-
     # Preferred path for Windows
     if device_names:
         logger.info(
@@ -190,11 +164,8 @@ def scan_capture_devices(max_index: int = 10) -> list[CaptureProbeResult]:
         for index, device_name in enumerate(device_names):
             try:
                 result = probe_capture_device(str(index))
-
                 result.device_name = device_name
-
                 results.append(result)
-
             except Exception as exc:
                 logger.exception(
                     "capture_device_probe_failed index=%s",
@@ -213,7 +184,6 @@ def scan_capture_devices(max_index: int = 10) -> list[CaptureProbeResult]:
                         message=f"Probe failed: {str(exc)}",
                     )
                 )
-
         return results
 
     # Fallback scanning
@@ -246,17 +216,13 @@ def scan_capture_devices(max_index: int = 10) -> list[CaptureProbeResult]:
                     message=f"Probe failed: {str(exc)}",
                 )
             )
-
     return results
-
 
 def capture_snapshot_to_temp_file(
     input_identifier: str,
 ) -> Path:
     source = resolve_hdmi_source(input_identifier)
-
     capture = open_capture(source)
-
     if not capture.isOpened():
         raise RuntimeError(
             "Could not open HDMI capture device"
@@ -264,7 +230,6 @@ def capture_snapshot_to_temp_file(
 
     try:
         success, frame = capture.read()
-
         if not success or frame is None:
             raise RuntimeError(
                 "Could not capture HDMI frame"
@@ -275,18 +240,14 @@ def capture_snapshot_to_temp_file(
             delete=False,
         ) as tmp:
             temp_path = Path(tmp.name)
-
         saved = cv2.imwrite(
             str(temp_path),
             frame,
         )
-
         if not saved:
             raise RuntimeError(
                 "Failed to encode HDMI snapshot"
             )
-
         return temp_path
-
     finally:
         capture.release()

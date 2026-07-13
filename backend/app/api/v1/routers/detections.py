@@ -14,14 +14,11 @@ from app.models import AdDetectionLog, Advertisement, AuditLog, DetectionEvidenc
 
 router = APIRouter(prefix="/detections", tags=["Detections"])
 
-
 class DetectionReviewRequest(BaseModel):
     reason: str | None = None
 
-
 def _evidence_url(evidence: DetectionEvidence) -> str:
     return f"/api/v1/detections/evidence/{evidence.id}/file"
-
 
 def _evidence_to_dict(evidence: DetectionEvidence) -> dict:
     return {
@@ -32,7 +29,6 @@ def _evidence_to_dict(evidence: DetectionEvidence) -> dict:
         "checksum": evidence.checksum,
         "created_at": evidence.created_at.isoformat() if evidence.created_at else None,
     }
-
 
 @router.get("")
 def list_detections(
@@ -95,7 +91,6 @@ def list_detections(
         for item in results
     ]
 
-
 @router.get("/evidence/{evidence_id}/file")
 def get_evidence_file(
     evidence_id: int,
@@ -127,7 +122,6 @@ def get_evidence_file(
 
     return FileResponse(path=str(path), media_type=media_type)
 
-
 @router.post("/{detection_id}/verify")
 def verify(
     detection_id: int,
@@ -154,7 +148,6 @@ def verify(
     db.commit()
 
     return {"status": "verified", "detection_id": detection.id}
-
 
 @router.post("/{detection_id}/reject")
 def reject(
@@ -185,5 +178,4 @@ def reject(
     )
 
     db.commit()
-
     return {"status": "rejected", "detection_id": detection.id}

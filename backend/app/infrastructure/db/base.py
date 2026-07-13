@@ -1,4 +1,4 @@
-#base.py 
+#backend/app/infrastructure/db/base.py
 from app.infrastructure.db.session import Base
 
 from app.models import (

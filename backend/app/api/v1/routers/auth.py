@@ -18,7 +18,6 @@ from app.schemas.auth import CurrentUserResponse, LoginRequest, TokenResponse
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
 
-
 @router.post("/login", response_model=TokenResponse)
 def login(payload: LoginRequest, request: Request, db: Session = Depends(get_db)):
     user = db.query(User).filter(User.email == payload.email).first()
@@ -80,7 +79,6 @@ def login(payload: LoginRequest, request: Request, db: Session = Depends(get_db)
         email=user.email,
     )
 
-
 @router.post("/refresh")
 def refresh_access_token(authorization: str = Header(...)):
     try:
@@ -98,7 +96,6 @@ def refresh_access_token(authorization: str = Header(...)):
         }
     except JWTError as exc:
         raise UnauthorizedException("Invalid or expired refresh token") from exc
-
 
 @router.post("/logout")
 def logout(
@@ -132,7 +129,6 @@ def logout(
     db.commit()
 
     return {"status": "logged_out"}
-
 
 @router.get("/me", response_model=CurrentUserResponse)
 def me(current_user: User = Depends(get_current_user)):

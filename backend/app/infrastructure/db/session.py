@@ -1,4 +1,4 @@
-#session.py 
+#backend/app/infrastructure/db/session.py
 from collections.abc import Generator
 
 from sqlalchemy import create_engine
@@ -22,10 +22,8 @@ SessionLocal = sessionmaker(
     class_=Session,
 )
 
-
 class Base(DeclarativeBase):
     pass
-
 
 def get_db() -> Generator[Session, None, None]:
     db = SessionLocal()

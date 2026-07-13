@@ -112,12 +112,10 @@ const AdLibraryPage: React.FC = () => {
     if (contractStartDate && contractEndDate) {
       const start = new Date(`${contractStartDate}T00:00:00`);
       const end = new Date(`${contractEndDate}T00:00:00`);
-
       if (end < start) {
         return "Contract end date cannot be before contract start date.";
       }
     }
-
     return "";
   };
 
@@ -145,7 +143,6 @@ const AdLibraryPage: React.FC = () => {
     if (selectedFile.size > MAX_FILE_SIZE_BYTES) {
       return "The selected video file is larger than 500MB.";
     }
-
     return "";
   };
 
@@ -241,7 +238,6 @@ const AdLibraryPage: React.FC = () => {
     const confirmed = window.confirm(
       `Archive advertiser "${advertiser.name}"? Existing historical detections will remain.`
     );
-
     if (!confirmed) {
       return;
     }

@@ -11,7 +11,6 @@ http_requests_total = Counter(
     "Total HTTP requests processed by DTV-Ad Monitor API",
 )
 
-
 @router.get("/metrics")
 def metrics():
     """

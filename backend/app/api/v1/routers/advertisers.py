@@ -10,7 +10,6 @@ from app.models import Advertiser, AuditLog, User
 
 router = APIRouter(prefix="/advertisers", tags=["Advertisers"])
 
-
 class AdvertiserCreateRequest(BaseModel):
     name: str = Field(min_length=1, max_length=255)
     contact_email: EmailStr | None = None
@@ -42,7 +41,6 @@ class AdvertiserCreateRequest(BaseModel):
             raise ValueError("contract_end_date cannot be before contract_start_date")
         return end_date
 
-
 class AdvertiserResponse(BaseModel):
     id: int
     name: str
@@ -56,7 +54,6 @@ class AdvertiserResponse(BaseModel):
     class Config:
         from_attributes = True
 
-
 def _advertiser_to_response(advertiser: Advertiser) -> AdvertiserResponse:
     return AdvertiserResponse(
         id=advertiser.id,
@@ -68,7 +65,6 @@ def _advertiser_to_response(advertiser: Advertiser) -> AdvertiserResponse:
         is_active=advertiser.is_active,
         is_archived=advertiser.is_archived,
     )
-
 
 @router.post("", response_model=AdvertiserResponse, status_code=status.HTTP_201_CREATED)
 def create_advertiser(
@@ -92,7 +88,6 @@ def create_advertiser(
 
     db.add(advertiser)
     db.flush()
-
     db.add(
         AuditLog(
             user_id=current_user.id,
@@ -105,9 +100,7 @@ def create_advertiser(
 
     db.commit()
     db.refresh(advertiser)
-
     return _advertiser_to_response(advertiser)
-
 
 @router.get("", response_model=list[AdvertiserResponse])
 def list_advertisers(
@@ -120,9 +113,7 @@ def list_advertisers(
         .order_by(Advertiser.created_at.desc())
         .all()
     )
-
     return [_advertiser_to_response(item) for item in advertisers]
-
 
 @router.delete("/{advertiser_id}", status_code=status.HTTP_204_NO_CONTENT)
 def archive_advertiser(

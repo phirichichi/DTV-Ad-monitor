@@ -55,7 +55,6 @@ export const AppLayout: React.FC<{ children: React.ReactNode; title?: string }> 
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
-
   const items = user ? menuByRole[user.role] || [] : [];
 
   return (

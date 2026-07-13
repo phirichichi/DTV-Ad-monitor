@@ -8,7 +8,6 @@ from typing import Any
 from fastapi import Request
 from starlette.middleware.base import BaseHTTPMiddleware
 
-
 class JsonFormatter(logging.Formatter):
     """
     Structured JSON log formatter for API and worker logs.
@@ -47,9 +46,7 @@ class JsonFormatter(logging.Formatter):
 
         if record.exc_info:
             payload["exception"] = self.formatException(record.exc_info)
-
         return json.dumps(payload)
-
 
 def setup_logging() -> None:
     """
@@ -57,7 +54,6 @@ def setup_logging() -> None:
     """
     handler = logging.StreamHandler(sys.stdout)
     handler.setFormatter(JsonFormatter())
-
     root_logger = logging.getLogger()
     root_logger.setLevel(logging.INFO)
     root_logger.handlers.clear()
@@ -67,12 +63,10 @@ def setup_logging() -> None:
     logging.getLogger("uvicorn.access").setLevel(logging.INFO)
     logging.getLogger("sqlalchemy.engine").setLevel(logging.WARNING)
 
-
 class RequestLoggingMiddleware(BaseHTTPMiddleware):
     """
     Middleware that logs request method, path, response status, and latency.
     """
-
     async def dispatch(self, request: Request, call_next):
         logger = logging.getLogger("dtv.request")
         start_time = time.perf_counter()
